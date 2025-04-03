@@ -1,0 +1,144 @@
+@charset "UTF-8";
+
+.reservation-container {
+    display: flex;
+    flex-wrap: wrap; /* 한 줄에 5개씩 배치 후 자동 줄바꿈 */
+    gap: 10px; /* 버튼 사이 여백 */
+    max-width: 100%; /* 5개 버튼이 한 줄에 배치되도록 제한 */
+    justify-content: space-between; /* 버튼 간격 균등 배치 */
+}
+
+.reservation-container span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc((100% - 40px) / 5);  /* 부모 크기에서 여백을 제외한 후 5등분 */
+    height: 40px;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.btn_bg {
+    width: 100%; /* 부모 요소(div)의 너비를 따라감 */
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.nocheck:hover{
+	border: 1px solid red;
+}
+
+.nocheck {
+    background-color: #E9F3FF;
+    color: #2D8CFF;
+}
+
+.check {
+    background-color: #2388FF;
+    color: #E4FAFF;
+}
+
+
+#rev_date{
+	width: 100px;
+}
+
+#revContent, #dateFrom{
+	width:600px;
+	margin: auto;
+}
+#dateFrom{
+	text-align: right;
+}
+.modal-dialog {
+    max-width: 400px; /* 모달 너비 줄이기 */
+}
+
+.modal-body {
+    padding: 15px; /* 내부 패딩 축소 */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 입력 필드 간 간격 축소 */
+}
+
+.form-group input {
+    width: 100%;
+    padding: 6px; /* 입력 필드 높이 줄이기 */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f8f9fa; /* 읽기 전용 필드 강조 */
+    font-size: 14px; /* 글자 크기 조정 */
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+.modal-footer .btn {
+    width: 45%; /* 버튼 크기 줄이기 */
+    padding: 6px; /* 버튼 높이 조정 */
+    font-size: 14px;
+}
+
+.date-nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            position: relative;
+        }
+
+        .date-nav-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .date-nav-btn:hover {
+            color: #333;
+        }
+
+        .today-btn {
+            color: #d57c4b;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .today-btn:hover {
+            color: #a85e3a;
+        }
+
+        .date-display {
+            cursor: pointer;
+            position: relative;
+            padding: 5px 10px;
+        }
+
+        input[type="date"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }

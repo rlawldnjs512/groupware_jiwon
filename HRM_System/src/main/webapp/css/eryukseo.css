@@ -1,0 +1,52 @@
+@charset "UTF-8";
+
+body{
+	width: 800px ;
+	margin-left: 70px;
+	text-align: center;
+}
+
+/*#lside{*/
+	
+/*		border: 1px solid black;*/
+/*	width: 150px;*/
+/*	height: 215px;*/
+/*	margin-left: 5px;*/
+/*}*/
+
+#photo{
+float: left;
+	border: 1px solid black;
+	width: 150px;
+	height: 215px;
+	margin-left: 5px;
+}
+
+/*#rSide{*/
+/*	float: right;*/
+/*}*/
+
+table{
+	border-collapse: collapse;
+	border-top: solid 3px black;
+}
+
+tr,td{
+	padding: 10px;
+	border-bottom: 1px dotted ;
+}
+
+#saveZone{
+	width: 100%;
+	height : auto;
+	padding: 20px;
+}
+
+div{
+	height: 250px;
+}
+
+h1,h3{
+	padding-left: 30px;
+	text-align: left;
+}

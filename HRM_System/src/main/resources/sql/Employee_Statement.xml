@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IEmployeeDao">
+
+
+	<!-- 로그인 getLogin -->
+	<select id="getLogin" resultType="EmployeeDto">
+		SELECT e.EMP_ID,
+		       e.NAME,
+			   e.POSITION, 
+			   e.EMAIL,
+			   e.LOGIN_AUTH,
+			   e.ROLE,
+			   TO_CHAR(HIRE_DATE, 'YYYY-MM-DD') AS HIRE_DATE,
+			   e.BIRTH,
+			   e.TEL,
+			   d.DEPT_NAME,   
+			   s.SIGN as SIGNSAVED
+		FROM EMPLOYEE e JOIN DEPT d 
+		ON e.DEPT_ID=d.DEPT_ID
+		LEFT JOIN SIGN s 
+		ON s.EMP_ID=e.EMP_ID
+		WHERE trim(e.EMP_ID) = trim(#{emp_id})
+		AND
+		trim(e.PASSWORD) = trim(#{password})
+	</select>
+	
+	<!--사원번호로 사용자 조회 findById -->
+	<select id="findById" resultType="EmployeeDto">
+		SELECT *
+		FROM EMPLOYEE
+		WHERE trim(EMP_ID) = trim(#{emp_id})
+	</select>
+
+	<!--비밀번호 재설정 modifyPw -->
+	<update id="modifyPw">
+    UPDATE EMPLOYEE
+    SET PASSWORD = TRIM(#{password})
+    WHERE TRIM(EMP_ID) = TRIM(#{emp_id})
+	</update>
+
+
+	<!--비밀번호 재설정에서 이메일 확인 checkEmail  -->
+	<select id="checkEmail" resultType="String">
+	SELECT EMAIL 
+	FROM EMPLOYEE 
+	WHERE trim(EMP_ID)=trim(#{emp_id})
+	</select>
+
+	<!-- 사용자가 관리자인지 확인하는 쿼리 -->
+	<select id="checkAd" resultType="java.lang.String">
+		SELECT EMP_ID
+		FROM EMPLOYEE
+		WHERE ROLE ='A' AND trim(EMP_ID)=trim(#{emp_id})
+	</select>
+
+
+	<!--사용자는 전체 사원을 조회할 수 있다 getAllUserStatus --> 
+	<!--현재 사용 안함-->
+	<select id="userSelectAll" resultType="EmployeeDto">
+		SELECT EMP_ID,NAME,POSITION,EMAIL,PHONE,DEPT_NAME,
+			   PROFILE_IMAGE,BIRTH,TEL
+		FROM EMPLOYEE e
+		JOIN DEPT d ON e.DEPT_ID =d.DEPT_ID
+	</select>
+
+
+<!--사원 조회 (부서별)-->
+	<select id="sortDept" resultType="EmployeeDto" parameterType="java.util.Map">
+    SELECT SEQ, PROFILE_IMAGE, NAME, 
+           POSITION, EMAIL, PHONE, DEPT_NAME,
+           BIRTH, HIRE_DATE, TEL, EMP_ID
+    FROM (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY E.EMP_ID) AS SEQ, -- 순차 번호 생성
+            E.PROFILE_IMAGE, E.NAME, E.POSITION, E.EMAIL, E.PHONE, D.DEPT_NAME,
+            E.BIRTH, E.HIRE_DATE, E.TEL, E.EMP_ID
+        FROM EMPLOYEE E
+        JOIN DEPT D ON E.DEPT_ID = D.DEPT_ID
+        WHERE 
+            <choose>
+                <when test="dept_name != null and dept_name != ''">
+                    TRIM(D.DEPT_NAME) LIKE '%' || TRIM(#{dept_name}) || '%'
+                </when>
+                <otherwise>
+                    1 = 1  <!-- 부서명이 없으면 전체 출력 -->
+                </otherwise>
+            </choose>
+    ) sub
+    WHERE SEQ BETWEEN #{first} AND #{last}
+    ORDER BY SEQ
+</select>
+
+	
+	<!--사원 조회 (이름별)  -->
+	<select id="sortName" resultType="EmployeeDto" parameterType="java.util.Map">
+    SELECT SEQ, PROFILE_IMAGE, NAME, 
+           POSITION, EMAIL, PHONE, DEPT_NAME,
+           BIRTH, HIRE_DATE, TEL, EMP_ID
+    FROM (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY E.EMP_ID) AS SEQ, -- 순차 번호 생성
+            E.PROFILE_IMAGE, E.NAME, E.POSITION, E.EMAIL, E.PHONE, D.DEPT_NAME,
+            E.BIRTH, E.HIRE_DATE, E.TEL, E.EMP_ID
+        FROM EMPLOYEE E
+        JOIN DEPT D ON E.DEPT_ID = D.DEPT_ID
+        WHERE 
+            <choose>
+                <when test="name != null and name != ''">
+                    TRIM(E.NAME) LIKE '%' || TRIM(#{name}) || '%'
+                </when>
+                <otherwise>
+                    1 = 1  <!-- 검색어가 없으면 전체 출력 -->
+                </otherwise>
+            </choose>
+    ) sub
+    WHERE SEQ BETWEEN #{first} AND #{last}
+    ORDER BY SEQ
+</select>
+
+
+	<select id="countEmployeesByDeptName" resultType="int">
+	    SELECT COUNT(*)
+	    FROM EMPLOYEE e
+	    JOIN DEPT d ON e.DEPT_ID = d.DEPT_ID
+	    WHERE d.DEPT_NAME LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	
+	<select id="countEmployeesByName" resultType="int">
+	    SELECT COUNT(*)
+	    FROM EMPLOYEE 
+	    WHERE NAME LIKE '%' || #{keyword} || '%'
+	</select>
+
+
+	<!--사원 한명에 대한 상세정보 getOneUser -->
+	<select id="getOneUser" resultType="EmployeeDto">
+	SELECT EMP_ID, NAME,
+		   POSITION,EMAIL,
+		   DEPT_NAME, PHONE,
+		   BIRTH,PROFILE_IMAGE,TEL
+		   
+		   TEL,HIRE_DATE
+	FROM EMPLOYEE e
+	JOIN DEPT d ON e.DEPT_ID =d.DEPT_ID
+	WHERE trim(EMP_ID) = trim(#{emp_id})
+	</select>
+	
+	<!--관리자는 사원을 등록 insertUser  -->
+   <insert id="insertEmployee" parameterType="EmployeeDto">
+   
+   <selectKey keyProperty="emp_id" resultType="String" order="BEFORE">
+			 SELECT TO_CHAR(TO_DATE(#{hire_date}, 'YYYY-MM-DD'), 'YYYY') || 
+                     LPAD(EMP_SEQ.NEXTVAL, 4, '0') EMP_ID
+              FROM DUAL 
+	</selectKey>
+	
+    INSERT INTO EMPLOYEE (
+        EMP_ID, DEPT_ID, NAME, PASSWORD, POSITION, BIRTH, 
+        PHONE, TEL, EMAIL, HIRE_DATE
+    ) 
+    VALUES (
+        #{emp_id}, 
+        #{dept_id}, 
+        #{name}, 
+        'a12345678',  <!-- 초기 비밀번호 고정 -->
+        #{position}, 
+        #{birth}, 
+        #{phone}, 
+        #{tel}, 
+        #{email}, 
+        TO_DATE(#{hire_date}, 'YYYY-MM-DD HH24:MI:SS')
+    )
+	</insert>
+	
+	<select id="getNotId" resultType="String">
+	SELECT EMP_ID FROM EMPLOYEE 
+	    ORDER BY EMP_ID DESC 
+	    FETCH FIRST 1 ROWS ONLY
+	</select>
+	
+
+	<!--신입사원 연차등록  -->
+	<insert id="insertVacation" parameterType="VacationDto">
+		INSERT INTO VACATION
+		(LEAVE_ID, EMP_ID, START_DATE, END_DATE, LEAVE_TOTAL, LEAVE_USE, LEAVE_REMAIN,
+		EXTRA_TIME)
+		VALUES (0, #{emp_id}, #{start_date}, #{end_date}, 0, 0, 0, 0)
+	</insert>
+
+
+	<!--관리자는 사원을 수정 updateUserInfo  -->
+	<update id="updateUser" parameterType="EmployeeDto">
+	    UPDATE EMPLOYEE
+	    SET
+	        DEPT_ID =#{dept_id},
+	        NAME = #{name},
+	        POSITION =#{position},
+	        PHONE =#{phone},
+	        TEL = #{tel},
+	        EMAIL = #{email},
+	        BIRTH = #{birth}
+	    WHERE trim(EMP_ID) = trim(#{emp_id})
+	</update>
+
+
+
+	<!--마이페이지에서 자신의 정보를 수정 modifyUserInfo -->
+	<update id="modifyUserInfo" parameterType="EmployeeDto">
+	    UPDATE EMPLOYEE
+	    SET
+	        NAME = #{name},
+	        PHONE = #{phone},
+	        TEL = #{tel},
+	        EMAIL = #{email},
+	        BIRTH = #{birth}
+	    WHERE trim(EMP_ID) = trim(#{emp_id})
+	</update>
+
+
+	
+	<!--마이페이지에서 자신의 정보를 조회 getOne-->
+	<select id="getOne" resultType="EmployeeDto">
+		SELECT e.EMP_ID, e.NAME, e.POSITION,
+			   e.BIRTH, e.PHONE,
+			   e.TEL, e.EMAIL, TO_CHAR(e.HIRE_DATE, 'YYYY-MM-DD') AS HIRE_DATE, e.PROFILE_IMAGE,
+		       d.DEPT_NAME
+		FROM EMPLOYEE e
+		JOIN DEPT d 
+		ON e.DEPT_ID = d.DEPT_ID
+		WHERE trim(e.EMP_ID) = trim(#{emp_id})
+	</select>
+	
+	<!--마이페이지에서 자신의 프로필 업로드 uploadProfile  -->
+	<update id="updateProfile">
+		UPDATE EMPLOYEE
+		SET PROFILE_IMAGE = #{profile_image}
+		WHERE trim(EMP_ID) = trim(#{emp_id})
+	</update>
+
+
+<!--여기서 부터는 페이징 처리 SQL  -->
+<!-- 페이징 처리된 범위의 사원들 selectAllUser  -->
+<select id="selectAllUser" resultType="EmployeeDto"
+ 						    parameterType="java.util.Map">
+	SELECT SEQ,  
+        PROFILE_IMAGE, 
+        NAME, 
+        POSITION, 
+        EMAIL, 
+        PHONE, 
+        DEPT_NAME,
+        BIRTH,
+        HIRE_DATE,TEL,EMP_ID
+    FROM 
+    (SELECT 
+        ROW_NUMBER() OVER (ORDER BY EMP_ID) AS SEQ, 
+        PROFILE_IMAGE, 
+        NAME, 
+        POSITION, 
+        EMAIL, 
+        PHONE, 
+        DEPT_NAME,
+        BIRTH,
+        HIRE_DATE,TEL,EMP_ID
+   FROM EMPLOYEE e
+   JOIN DEPT d ON e.DEPT_ID = d.DEPT_ID) sub
+   WHERE SEQ BETWEEN #{first} AND #{last}
+</select>
+
+	<!--사원조회의 전체 갯수 countUser  -->
+	<select id="countUser" resultType="Integer">
+		SELECT COUNT(*) 
+		  FROM EMPLOYEE e
+	</select>
+	
+	<!-- 사원 1명의 부서명 조회 -->
+	<select id="selectDeptName" resultType="String">
+		SELECT DEPT_NAME , NAME
+			FROM DEPT d
+			JOIN EMPLOYEE e
+			ON d.DEPT_ID = e.DEPT_ID 
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	<!-- 사원 1명의 프로필이미지 조회 -->
+	<select id="selectProfileImg" resultType="String">
+		SELECT PROFILE_IMAGE 
+			FROM EMPLOYEE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+
+	
+	
+	
+	
+	
+
+</mapper>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IAttendanceDao">
+
+	<!-- 전체 사원의 출퇴근 목록 조회 -->
+	<select id="attendanceList" resultType="AttendanceDto">
+		SELECT ATTEND_ID, EMP_ID, TO_CHAR(ATTEND_DATE, 'YYYY-MM-DD') ATTEND_DATE, CLOCKIN, CLOCKOUT, TOTAL_TIME, ATTEND_TYPE, USE_EXTRA_TIME
+			FROM ATTENDANCE
+			ORDER BY ATTEND_ID ASC
+	</select>
+	
+	<!-- 특정 사원의 출퇴근 목록 조회 -->
+	<select id="attendanceListByEmpId" resultType="AttendanceDto">
+		SELECT ATTEND_ID, EMP_ID, TO_CHAR(ATTEND_DATE, 'YYYY-MM-DD') ATTEND_DATE, CLOCKIN, CLOCKOUT, TOTAL_TIME, ATTEND_TYPE, USE_EXTRA_TIME
+	        FROM ATTENDANCE
+	        WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	        ORDER BY ATTEND_ID ASC
+	</select>
+	
+	<!-- 출근버튼을 눌렀을 때 출근 시간 입력 -->
+	<insert id="insertAttendance">
+		INSERT INTO ATTENDANCE (ATTEND_ID, EMP_ID, ATTEND_DATE, CLOCKIN)
+			VALUES (ATTENDANCE_SEQ.NEXTVAL, #{empId}, TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD'), CURRENT_TIMESTAMP)
+	</insert>
+	
+	<!-- 퇴근버튼을 눌렀을 때 퇴근 시간 입력 -->
+	<update id="updateAttendance">
+		UPDATE ATTENDANCE SET CLOCKOUT = CURRENT_TIMESTAMP
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+			AND CLOCKOUT IS NULL
+	</update>
+	
+	<!-- 출근 여부 확인 -->
+	<select id="checkAttendance" resultType="Integer">
+	SELECT CASE 
+           WHEN EXISTS (SELECT 1 
+                        FROM ATTENDANCE 
+                        WHERE TRIM(EMP_ID) = TRIM(#{empId})
+                        AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)) 
+           THEN 1 ELSE 0 END AS isClockedIn
+		FROM DUAL
+	</select>
+	
+	<!-- 출근시간 조회 -->
+	<select id="selectClockIn" resultType="String">
+		SELECT CLOCKIN 
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</select>
+	
+	<!-- 퇴근시간 조회 -->
+	<select id="selectClockOut" resultType="String">
+		SELECT CLOCKOUT 
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</select>
+	
+	<!-- 총 근무시간 계산 (1분단위로 내림) -->
+	<update id="calAttendance">
+		UPDATE ATTENDANCE SET TOTAL_TIME = FLOOR((CLOCKOUT - CLOCKIN) * 1440)
+			WHERE TRIM(EMP_ID) = TRIM(#{empId}) AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</update>
+	
+	<!-- 근무형태 조회 (정상근무, 지각, 조퇴) -->
+	<select id="selectAttendtype" resultType="String">
+		SELECT ATTEND_TYPE 
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</select>
+	
+	<!-- 근무형태 업데이트 (정상근무, 지각, 조퇴) -->
+	<update id="updateAttendtype">
+		UPDATE ATTENDANCE SET ATTEND_TYPE = #{attendType}
+			WHERE TRIM(EMP_ID) = TRIM(#{empId}) AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</update>
+	
+	<!-- 사용한 보상시간 업데이트 -->
+	<update id="updateUseExtraTime">
+		UPDATE ATTENDANCE SET USE_EXTRA_TIME = #{useExtraTime}
+			WHERE TRIM(EMP_ID) = TRIM(#{empId}) AND ATTEND_DATE = TRUNC(CURRENT_TIMESTAMP)
+	</update>
+	
+	<!-- 사원 1명의 평균 출근시간 계산 -->
+	<select id="avgClockInTime" resultType="String">
+		SELECT TO_CHAR(
+			           TO_DATE('1900-01-01', 'YYYY-MM-DD')
+			           + (AVG(CLOCKIN - TRUNC(CLOCKIN)) * 24 * 60) / (24 * 60), 'HH24:MI:SS'
+			           ) AS avgClockInTime
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	<!-- 모든 사원의 평균 출근시간 계산 -->
+	<select id="avgClockInTimeAll" resultType="String">
+		SELECT TO_CHAR(
+			           TO_DATE('1900-01-01', 'YYYY-MM-DD')
+			           + (AVG(CLOCKIN - TRUNC(CLOCKIN)) * 24 * 60) / (24 * 60), 'HH24:MI:SS'
+			           ) AS avgClockInTime
+			FROM ATTENDANCE
+	</select>
+	
+	<!-- 사원 1명의 평균 퇴근시간 계산 -->
+	<select id="avgClockOutTime" resultType="String">
+		SELECT TO_CHAR(
+			           TO_DATE('1900-01-01', 'YYYY-MM-DD')
+			           + (AVG(CLOCKOUT - TRUNC(CLOCKOUT)) * 24 * 60) / (24 * 60), 'HH24:MI:SS'
+			           ) AS avgClockOutTime
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	<!-- 모든 사원의 평균 퇴근시간 계산 -->
+	<select id="avgClockOutTimeAll" resultType="String">
+		SELECT TO_CHAR(
+			           TO_DATE('1900-01-01', 'YYYY-MM-DD')
+			           + (AVG(CLOCKOUT - TRUNC(CLOCKOUT)) * 24 * 60) / (24 * 60), 'HH24:MI:SS'
+			           ) AS avgClockOutTime
+			FROM ATTENDANCE
+	</select>
+	
+	<!-- 사원 1명의 평균 근무 시간 계산 -->
+	<select id="avgWorkTime" resultType="String">
+		SELECT TO_CHAR(
+			           TRUNC(AVG(TOTAL_TIME) / 60), 'FM00') || ':' || 
+			           TO_CHAR(MOD(AVG(TOTAL_TIME), 60), 'FM00') AS avgWorkTime
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	<!-- 모든 사원의 평균 근무 시간 계산 -->
+	<select id="avgWorkTimeAll" resultType="String">
+		SELECT TO_CHAR(
+			           TRUNC(AVG(TOTAL_TIME) / 60), 'FM00') || ':' || 
+			           TO_CHAR(MOD(AVG(TOTAL_TIME), 60), 'FM00') AS avgWorkTime
+			FROM ATTENDANCE
+	</select>
+	
+	<!-- 부서별 평균 근무 시간 계산 -->
+	<select id="avgWorkTimeByDept" resultType="Map">
+		SELECT d.DEPT_NAME													AS DEPTNAME, 
+		       TO_CHAR(TRUNC(AVG(a.TOTAL_TIME) / 60), 'FM00') || ':' || 
+       		   TO_CHAR(MOD(AVG(a.TOTAL_TIME), 60), 'FM00') 					AS AVERAGETIME
+			FROM EMPLOYEE e
+			JOIN DEPT d ON TRIM(e.DEPT_ID) = TRIM(d.DEPT_ID)
+			JOIN ATTENDANCE a ON TRIM(e.EMP_ID) = TRIM(a.EMP_ID)
+			GROUP BY d.DEPT_NAME
+	</select>
+	
+	<!-- 이번 달 지각 횟수 계산 -->
+	<select id="selectLate" resultType="Integer">
+		SELECT COUNT(*)
+			FROM ATTENDANCE
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND TO_CHAR(ATTEND_DATE, 'YYYYMM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMM')
+			AND ATTEND_TYPE = '지각'
+	</select>
+	
+	<!-- 오늘 지각한 직원수 조회 -->
+	<select id="selectLateToday" resultType="Integer">
+		SELECT COUNT(*)
+			FROM ATTENDANCE
+			WHERE TO_CHAR(ATTEND_DATE, 'YYYYMMDD') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDD')
+			AND ATTEND_TYPE = '지각'
+	</select>
+	
+	<!-- 이번 달 지각 많이 한 사원 순서대로 -->
+	<select id="getLateEmpRank" resultType="Map">
+		SELECT e.NAME AS NAME, COUNT(*) AS LATECOUNT
+			FROM ATTENDANCE a JOIN EMPLOYEE e 
+			ON a.EMP_ID = e.EMP_ID
+			WHERE a.ATTEND_TYPE = '지각'
+			GROUP BY e.NAME
+			ORDER BY LATECOUNT DESC
+	</select>
+	
+<!-- 	{ -->
+<!-- 		          title: 'Meeting with Team', -->
+<!-- 		          start: '2025-03-12T09:00:00', -->
+<!-- 		          end: 'T' -->
+<!-- 		        }, -->
+	<!-- FullCalendar 값 -->
+	<select id="getCalendar" resultType="Map">
+		SELECT ATTEND_TYPE 																	AS "title", 
+			   TO_CHAR (CLOCKIN, 'YYYY-MM-DD') || 'T'|| TO_CHAR (CLOCKIN, 'HH24:MI:SS') 	AS "start", 
+			   TO_CHAR (CLOCKOUT, 'YYYY-MM-DD') || 'T'|| TO_CHAR (CLOCKOUT, 'HH24:MI:SS') 	AS "end",
+			   USE_EXTRA_TIME 																AS "useTime",
+			   '#0064DC' 																	AS "color",
+			   0																			AS "allDay"
+		FROM ATTENDANCE
+	    WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	    UNION ALL
+			SELECT TYPE, TO_CHAR(LEAVE_START, 'YYYY-MM-DD"T00:00:00"'), TO_CHAR(LEAVE_END + 1, 'YYYY-MM-DD"T00:00:00"'), NULL, '#646464', 1
+			FROM LEAVE l 
+			JOIN DOCUMENT d 
+			ON l.DOC_ID = d.DOC_ID 
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	
+	
+
+</mapper>

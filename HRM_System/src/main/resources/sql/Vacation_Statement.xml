@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IVacationDao">
+
+	<!-- 모든 사원들의 휴가 정보 조회 -->
+	<select id="vacationList" resultType="VacationDto">
+		SELECT LEAVE_ID, EMP_ID, START_DATE, END_DATE, LEAVE_TOTAL, LEAVE_USE, LEAVE_REMAIN
+			FROM VACATION
+	</select>
+	
+	<!-- 사원 1명의 휴가 정보 조회 -->
+	<select id="vacationListByEmpId" resultType="Map">
+		SELECT LEAVE_ID, EMP_ID, START_DATE, END_DATE, LEAVE_TOTAL, LEAVE_USE, LEAVE_REMAIN
+			FROM VACATION
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+
+	<!-- 보상시간 조회 -->
+	<select id="selectExtraTime" resultType="Integer">
+		SELECT EXTRA_TIME 
+			FROM VACATION
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	<!-- 보상시간 적립 및 사용 -->
+	<update id="updateExtraTime">
+		UPDATE VACATION SET EXTRA_TIME = EXTRA_TIME + #{extraTime}
+        	WHERE EMP_ID = #{empId}
+	</update>
+	
+	<!-- 남은 휴가 조회 -->
+	<select id="selectLeaveRemain" resultType="Integer">
+		SELECT LEAVE_REMAIN 
+			FROM VACATION
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+	</select>
+	
+	
+
+</mapper>
+
+

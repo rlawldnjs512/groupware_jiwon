@@ -1,0 +1,120 @@
+@charset "UTF-8";
+
+.card.border-light.mb-3 {
+	background-color: #F0F0F0;
+	width: 60em;
+	height: 10em; /* 높이를 자동으로 설정하여 내부 요소들이 자연스럽게 배치되도록 */
+	text-align: center;
+	margin-left: 40px;
+	margin-top: 40px;
+	display: flex; /* flex로 설정하여 자식 요소들을 정렬 */
+    align-items: center; /* 자식 요소들이 세로 중앙에 위치하도록 설정 */
+}
+
+.card-body {
+	display: flex; /* 자식 요소들을 가로로 배치 */
+	width: auto; /* 부모 요소의 넓이를 꽉 채움 */
+	align-items: center; /* 세로 중앙 정렬 */
+}
+
+.card-body div {
+	text-align: center; /* 각 div 안의 내용 중앙 정렬 */
+	white-space: nowrap; /* 텍스트가 한 줄로 나오게 제한 */
+}
+
+.vacationInfo {
+	display: flex; /* 자식 요소들을 가로로 배치 */
+	width: 100%; /* 부모 요소의 넓이를 꽉 채움 */
+	justify-content: space-around; /* 요소들 사이에 공간을 분배 */
+}
+
+.vacationInfo div {
+	text-align: center; /* 각 div 안의 내용 중앙 정렬 */
+}
+
+.period {
+	display: flex; /* 가로 정렬 (flexbox 사용) */
+	align-items: center; /* 세로 중앙 정렬 */
+	justify-content: center; /* 가로 중앙 정렬 (필요하면 추가) */
+	gap: 10px; /* 요소 간 간격 */
+	height: 50px; /* 필요에 따라 높이 조정 */
+}
+
+.period div {
+	text-align: center; /* 각 div 안의 내용 중앙 정렬 */
+}
+
+.card-title {
+	padding: 10px;
+	margin-right: 50px;
+}
+
+.table {
+	background-color: #F0F0F0;
+	max-width: 60em; /* 최대 너비를 .card와 동일하게 설정 */
+	text-align: center;
+	margin-left: 40px;
+	margin-top: 40px;
+}
+
+.card-title p {
+    font-weight: bold;
+    font-size: 20px;
+    margin-top: 20px;
+}
+
+.card-title h4 {
+    font-weight: bold;
+}
+
+
+
+
+.period input[type="date"] {
+    appearance: none; /* 기본 스타일 제거 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    width: 150px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    color: #333;
+    cursor: pointer;
+
+    /* 캘린더 아이콘 추가 */
+    background-image: url('./images/calendar.svg');
+    background-size: 18px;
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.period input[type="date"]:hover {
+    border-color: #007bff;
+}
+
+.period input[type="date"]:focus {
+    outline: none;
+    border-color: #0056b3;
+    background-color: #fff;
+}
+
+.btn.btn-light-primary {
+	color: var(--bs-primary);
+	border-color: var(--bs-primary-light);
+	background-color: var(--bs-primary-light);
+}
+
+.btn.btn-light-primary:hover {
+	color: var(--bs-primary-white);
+	border-color: var(--bs-primary);
+	background-color: var(--bs-primary);
+}
+
+.btn.btn-light-primary:focus {
+	outline: none;
+	box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary), 0.5);
+}
+

@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IApprovalDao">
+
+<resultMap type="DocumentDto" id="DocumentDtoMap">
+    <result property="emp_id" column="EMP_ID"/>
+    <result property="doc_id" column="DOC_ID"/>
+    <result property="doc_type" column="DOC_TYPE"/>
+    <result property="title" column="TITLE"/>
+    <result property="content" column="CONTENT"/>
+    <result property="doc_status" column="DOC_STATUS"/>
+    <result property="doc_num" column="DOC_NUM"/>
+    <result property="file_exist" column="FILE_EXIST"/>
+    <result property="name" column="NAME"/>
+    <result property="position" column="POSITION"/>
+    <result property="dept_name" column="DEPT_NAME"/>
+    <result property="apprv_date" column="APPRV_DATE"/>
+    <result property="sign" column="SIGN"/>
+    <result property="apprv_name" column="APPRV_NAME"/>
+
+    <collection property="approvalDtos" ofType="ApprovalDto" column="DOC_ID">
+        <result property="apprv_level" column="APPRV_LEVEL"/>
+        <result property="apprv_status" column="APPRV_STATUS"/>
+    </collection>
+</resultMap>
+
+
+<!-- 사용자별로 한개의 서명만 등록할 수 있다.	insertSign -->
+<insert id="insertSign" parameterType="SignDto">
+	INSERT INTO SIGN (SIGN_ID, EMP_ID, SIGN)
+	SELECT SIGN_SEQ.NEXTVAL, EMP_ID, #{sign}
+		FROM EMPLOYEE e
+		WHERE NAME = #{name}
+	  	AND NOT EXISTS (SELECT 1 FROM SIGN s WHERE s.EMP_ID = e.EMP_ID)
+</insert>
+
+<select id="selectSign" resultType="SignDto">
+	SELECT SIGN_ID , EMP_ID , SIGN
+	FROM SIGN
+</select>
+
+<select id="selectSignOne" resultType="SignDto">
+	SELECT SIGN
+	FROM SIGN
+	WHERE EMP_ID = #{emp_id}
+</select>
+
+<!-- 사용자는 자신의 서명을 삭제할 수 있다.	deleteSign -->
+<delete id="deleteSign">
+	DELETE FROM SIGN
+	WHERE EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+</delete>
+
+<!-- 사용자는 작성중인 결재문서를 임시저장할 수 있다.	insertSaveDoc -->
+<insert id="insertSaveDoc">
+	<selectKey keyProperty="doc_id" resultType="Integer" order="BEFORE">
+		SELECT DOCUMENT_SEQ.NEXTVAL
+		FROM DUAL
+	</selectKey>
+	INSERT INTO DOCUMENT
+	    (DOC_ID, 
+	     EMP_ID,
+	     DOC_TYPE, 
+	     TITLE,
+	     CONTENT, 
+	     CREATE_DATE,
+	     DOC_STATUS, 
+	     DOC_DATE, 
+	     FILE_ID, 
+	     DOC_NUM)
+	VALUES
+	    (#{doc_id}, 
+	    (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name}),
+		#{doc_type}, 
+		#{title},
+		#{content}, 
+		SYSDATE,
+		'T', 
+		NULL, 
+		0, 
+		CASE 
+			WHEN #{doc_type} = '휴가' THEN 'VACA'
+			WHEN #{doc_type} = '출장' THEN 'TRIP'
+			WHEN #{doc_type} = '보고서' THEN 'REPORT'
+		END || '_' || TO_CHAR(SYSDATE, 'YYYY') || '_' || #{doc_id})
+</insert>
+
+<!-- 임시저장한 문서를 상신할 때 -->
+<update id="insertTempDoc">
+UPDATE DOCUMENT SET DOC_STATUS='N'
+WHERE DOC_ID=#{doc_id}
+</update>
+
+<!-- 사용자는 결재를 상신할 수 있다. insertApprovalDoc -->
+<insert id="insertApprovalDoc">
+	<selectKey keyProperty="doc_id" resultType="Integer" order="BEFORE">
+		SELECT DOCUMENT_SEQ.NEXTVAL
+		FROM DUAL
+	</selectKey>
+	INSERT INTO DOCUMENT
+	    (DOC_ID, 
+	     EMP_ID,
+	     DOC_TYPE, 
+	     TITLE,
+	     CONTENT, 
+	     CREATE_DATE,
+	     DOC_STATUS, 
+	     DOC_DATE, 
+	     FILE_ID, 
+	     DOC_NUM)
+	VALUES
+	    (#{doc_id}, 
+	    (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name}),
+		#{doc_type}, 
+		#{title},
+		#{content}, 
+		SYSDATE,
+		'N', 
+		NULL, 
+		0, 
+		CASE 
+			WHEN #{doc_type} = '휴가' THEN 'VACA'
+			WHEN #{doc_type} = '출장' THEN 'TRIP'
+			WHEN #{doc_type} = '보고서' THEN 'REPORT'
+		END || '_' || TO_CHAR(SYSDATE, 'YYYY') || '_' || #{doc_id})
+</insert>
+
+<!-- 문서 저장 후에 실행해야 할 쿼리 -->
+<select id="getDocId" resultType="Integer">
+		SELECT DOC_ID FROM DOCUMENT 
+	    ORDER BY DOC_ID DESC 
+	    FETCH FIRST 1 ROWS ONLY
+</select>
+<insert id="insertTempFile">
+		INSERT INTO FILEUP
+			(FILE_ID,
+			DOC_ID,
+			TABLE_NAME,
+			ORIGIN_NAME,
+			STORE_NAME,
+			"SIZE",
+			REGDATE,
+			DELFLAG,
+			FILE_PATH)
+		VALUES (FILEUP_SEQ.NEXTVAL,
+			#{doc_id} ,
+			'DOCUMENT',
+			#{origin_name},
+			#{store_name},
+			#{size},
+			SYSDATE,
+			'N',
+			#{file_path})
+</insert>
+<update id="updateTempFileExist">
+		UPDATE DOCUMENT
+		SET FILE_EXIST = 'Y'
+		WHERE DOC_ID = #{doc_id}
+</update>
+
+<!-- 출장 임시저장 추가 // 결재할때에도 -->
+<insert id="insertSaveTrip">
+	INSERT INTO TRIP
+	(DOC_ID, 
+	 TRIP_START, 
+	 TRIP_END, 
+	 DESTINATION)
+	VALUES(#{doc_id}, 
+		   #{trip_start}, 
+		   #{trip_end}, 
+		   #{destination})
+</insert>
+
+<!-- 휴가 임시저장 추가 // 결재할때에도 -->
+<insert id="insertSaveLeave">
+	INSERT INTO LEAVE
+			(DOC_ID, LEAVE_START, LEAVE_END, 
+			 "TYPE", LEAVE_DAYS)
+	VALUES(#{doc_id}, #{leave_start}, #{leave_end}, 
+	       #{type}, #{leave_days})
+</insert>
+
+<!-- 임시저장한 문서를 조회할 수 있다. -->
+<select id="getDocNum" resultType="String">
+    SELECT DOC_NUM FROM DOCUMENT 
+    WHERE EMP_ID = (SELECT EMP_ID FROM EMPLOYEE WHERE NAME = #{name}) 
+    ORDER BY CREATE_DATE DESC A
+    FETCH FIRST 1 ROWS ONLY
+</select>
+
+<!-- 사용자는 임시저장한 문서를 삭제할 수 있다.	deleteSaveDoc -->
+<delete id="deleteSaveDoc">
+	DELETE FROM DOCUMENT d 
+	WHERE DOC_ID = #{doc_id}
+	AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+</delete>
+
+<!-- 임시저장할 때 들어갔던 출장 삭제 -->
+<delete id="deleteSaveTrip">
+	DELETE FROM TRIP
+	WHERE DOC_ID = #{doc_id}
+</delete>
+
+<!-- 임시저장할 때 들어갔던 휴가 삭제 -->
+<delete id="deleteSaveLeave">
+	DELETE FROM LEAVE
+	WHERE DOC_ID = #{doc_id}
+</delete>
+
+<select id="selectSuccessDoc" resultMap="DocumentDtoMap">
+	SELECT 
+	    d.EMP_ID, 
+	    d.DOC_ID, 
+	    d.DOC_TYPE, 
+	    d.TITLE, 
+	    d.CONTENT, 
+	    d.DOC_STATUS, 
+	    d.DOC_NUM, 
+	    d.FILE_EXIST, 
+	    e.NAME, 
+	    e."POSITION", 
+	    dept.DEPT_NAME,
+	    TO_CHAR(a.APPRV_DATE,'YYYY-MM-DD') AS APPRV_DATE
+	FROM DOCUMENT d
+	JOIN EMPLOYEE e ON d.EMP_ID = e.EMP_ID
+	JOIN DEPT dept ON e.DEPT_ID = dept.DEPT_ID
+	JOIN APPROVAL a ON d.DOC_ID = a.DOC_ID
+	WHERE d.DOC_STATUS = 'Y'
+	AND a.APPRV_DATE = (
+	    SELECT MAX(a2.APPRV_DATE) 
+	    FROM APPROVAL a2 
+	    WHERE a2.DOC_ID = d.DOC_ID
+	)
+	AND dept.DEPT_NAME = (
+		SELECT DEPT_NAME
+		FROM DEPT dept2
+		JOIN EMPLOYEE e2 ON e2.DEPT_ID = dept2.DEPT_ID
+		WHERE e2.EMP_ID = #{emp_id}
+	)
+</select>
+
+
+<!-- 사용자는 임시저장한 문서를 조회할 수 있다.	selectPreviewDoc -->
+<select id="selectPreviewDoc" resultMap="DocumentDtoMap">
+	SELECT DOC_NUM , DOC_TYPE , TITLE , DOC_STATUS,DOC_ID
+		FROM DOCUMENT d 
+		WHERE EMP_ID = #{emp_id}
+		AND DOC_STATUS ='T'
+</select>
+
+<select id="continuePriview" resultType="DocumentDto">
+SELECT DOC_ID, DOC_TYPE , TITLE, CONTENT,DOC_STATUS
+	FROM DOCUMENT d 
+	WHERE DOC_ID = #{doc_id}
+</select>
+
+
+<select id="continuePreviewDoc" resultMap="DocumentDtoMap">
+	SELECT a.EMP_ID , 
+		   (SELECT NAME FROM EMPLOYEE e2 WHERE e2.EMP_ID = a.EMP_ID) AS APPRV_NAME,
+		   a.APPRV_STATUS , 
+		   a.SIGN , 
+		   s.DOC_ID ,
+		   (SELECT NAME FROM EMPLOYEE e WHERE NAME = #{name}) AS NAME,
+		   s.DOC_TYPE , 
+		   s.TITLE , 
+		   s.CONTENT, 
+		   s.CREATE_DATE , 
+		   s.DOC_STATUS , 
+		   s.DOC_NUM,
+		   e."POSITION",
+	   	   dept.DEPT_NAME 
+	FROM DOCUMENT s
+	JOIN APPROVAL a ON s.DOC_ID = a.DOC_ID
+	JOIN EMPLOYEE e ON s.EMP_ID = e.EMP_ID
+	JOIN DEPT dept ON e.DEPT_ID = dept.DEPT_ID
+	WHERE s.DOC_ID = #{doc_id}
+</select>
+
+<!-- 출장 조회하기 -->
+<select id="continuePrviewTrip" resultType="TripDto">
+	SELECT DOC_ID, 
+	 	   TO_CHAR(TRIP_START,'YYYY-MM-DD') AS TRIP_START, 
+		   TO_CHAR(TRIP_END,'YYYY-MM-DD') AS TRIP_END, 
+		   DESTINATION
+	FROM TRIP
+	WHERE DOC_ID = #{doc_id}
+</select>
+
+<select id="continuePreviewLeave" resultType="LeaveDto">
+	SELECT DOC_ID,
+		   TO_CHAR(LEAVE_START,'YYYY-MM-DD') AS LEAVE_START,
+		   TO_CHAR(LEAVE_END,'YYYY-MM-DD') AS LEAVE_END,
+		   "TYPE",
+		   LEAVE_DAYS
+	FROM LEAVE
+	WHERE DOC_ID = #{doc_id}
+</select>
+
+
+<!-- 결재문서 유형만 조회하기 -->
+<select id="getDocType" resultType="String">
+	SELECT DOC_TYPE
+	FROM DOCUMENT d
+	WHERE DOC_ID = #{doc_id}
+</select>
+
+<select id="selectTree" resultType="Map">
+<![CDATA[
+SELECT 'company' AS "id", 
+       '#' AS "parent", 
+       '회사' AS "text", 
+       '1' AS "opened" 
+FROM DUAL
+UNION ALL
+SELECT TO_CHAR(dept_id) AS "id", 
+       'company' AS "parent", 
+       dept_name AS "text", 
+       '0' AS "opened" 
+FROM DEPT
+UNION ALL
+SELECT EMP_ID AS "id", 
+       TO_CHAR(dept_id) AS "parent", 
+       name || ' (' || position || ')' AS "text", 
+       '0' AS "opened" 
+FROM EMPLOYEE
+]]>
+</select>
+
+<!-- 문서 생성 -->
+<insert id="insertDocument">
+	<selectKey keyProperty="doc_id" resultType="Integer" order="BEFORE">
+		SELECT DOCUMENT_SEQ.NEXTVAL
+		FROM DUAL
+	</selectKey>
+	INSERT INTO DOCUMENT
+	    (DOC_ID, EMP_ID, DOC_TYPE, 
+	     TITLE, CONTENT, CREATE_DATE,
+	     DOC_STATUS, DOC_DATE, FILE_ID, DOC_NUM)
+	VALUES
+	    (#{doc_id}, #{emp_id}, #{doc_type}, 
+		#{title}, #{content}, CURRENT_DATE,
+		'N', NULL, 0, 
+		CASE 
+			WHEN #{doc_type} = '휴가' THEN 'VACA'
+			WHEN #{doc_type} = '출장' THEN 'TRIP'
+			WHEN #{doc_type} = '보고서' THEN 'REPORT'
+		END || '_' || TO_CHAR(SYSDATE, 'YYYY') || '_' || #{doc_id})
+</insert>
+
+<!-- 결재 생성 -->
+<insert id="insertApproval">
+    <selectKey keyProperty="apprv_id" resultType="java.lang.Integer" order="BEFORE">
+        SELECT NVL(MAX(APPRV_ID), 0) + 1 FROM APPROVAL
+    </selectKey>
+
+    INSERT INTO APPROVAL (APPRV_ID, DOC_ID, EMP_ID, APPRV_LEVEL, APPRV_STATUS)
+    <foreach collection="approval" item="app" index="idx" separator=" UNION ALL ">
+        SELECT #{apprv_id} + #{idx}, #{doc_id}, #{app}, #{idx} + 1, '진행중' FROM DUAL
+    </foreach>
+</insert>
+
+
+
+
+
+<!--본인이 결재해야 할 문서 리스트  -->
+<select id="getApprovalList" parameterType="string" resultType="ApprovalDto">
+    SELECT 
+    	A.EMP_ID,
+        A.APPRV_ID,
+        A.DOC_ID,
+        D.DOC_TYPE,
+        D.TITLE,
+        E.NAME,
+        D.DOC_STATUS,
+        TO_CHAR(D.DOC_DATE, 'YYYY-MM-DD') AS DOC_DATE,
+        A.APPRV_STATUS,
+        A.APPRV_LEVEL,
+        A.SIGN as SIGNSAVED,
+        D.DOC_NUM
+    FROM (
+        SELECT 
+            APPRV_ID, DOC_ID, EMP_ID, APPRV_STATUS, SIGN,  APPRV_LEVEL,
+            LAG(APPRV_STATUS, 1) OVER (PARTITION BY DOC_ID ORDER BY APPRV_LEVEL) AS PREV_SIGN,
+            ROW_NUMBER() OVER (PARTITION BY DOC_ID ORDER BY APPRV_LEVEL ASC) AS rn
+        FROM APPROVAL
+    ) A
+    JOIN DOCUMENT D ON A.DOC_ID = D.DOC_ID
+    JOIN EMPLOYEE E ON D.EMP_ID = E.EMP_ID
+    WHERE (A.PREV_SIGN = '승인' OR A.PREV_SIGN IS NULL)
+        AND A.APPRV_STATUS != '승인'
+        AND A.APPRV_STATUS != '반려'
+        AND A.EMP_ID = #{emp_id}
+     ORDER BY D.DOC_ID DESC
+</select>
+
+
+<!-- 파일관련 정보 (파일다운로드를 위해)-->
+	<select id="getReportFileById" resultType="FileUpDto">
+    SELECT FILE_ID, DOC_ID,
+           ORIGIN_NAME, STORE_NAME, "SIZE", FILE_PATH
+    FROM FILEUP f
+    WHERE TABLE_NAME = 'DOCUMENT'
+    AND DOC_ID = #{doc_id}
+   </select>
+
+
+
+
+<!-- 리스트에서 상세보기된 문서 -->
+<select id="getApprovalDetail" resultType="DocumentDto">
+ 	SELECT d.TITLE, d.CONTENT, d.DOC_TYPE,
+  	    f.FILE_ID,f.STORE_NAME ,f.ORIGIN_NAME
+ 	FROM DOCUMENT d LEFT JOIN FILEUP f 
+ 	ON d.DOC_ID = f.DOC_ID 
+ 	WHERE d.DOC_ID = #{doc_id}
+</select>
+<select id="geteApproval" resultType="ApprovalDto">
+	 SELECT APPRV_ID ,NAME , d.DEPT_NAME , a.EMP_ID, APPRV_LEVEL,a.SIGN AS signSaved
+ 	FROM APPROVAL a JOIN EMPLOYEE e 
+ 	ON a.EMP_ID = e.EMP_ID 
+ 	JOIN DEPT d 
+ 	ON e.DEPT_ID  = d.DEPT_ID 
+ 	WHERE DOC_ID =  #{doc_id}
+ 	ORDER BY APPRV_LEVEL
+ 
+</select>
+
+<!--결재문서 보낸사람 정보 표시 -->
+<select id="getApp" resultType="EmployeeDto" parameterType="Integer">
+SELECT d2.DEPT_NAME, e."POSITION", e.NAME , e.EMP_ID, s.SIGN as signSaved
+	FROM EMPLOYEE e JOIN DEPT d2 
+	ON d2.DEPT_ID = e.DEPT_ID 
+	JOIN SIGN s 
+	ON e.EMP_ID  = s.EMP_ID 
+	WHERE e.EMP_ID = (SELECT EMP_ID FROM DOCUMENT d WHERE DOC_ID =#{doc_id})
+</select>
+
+<!--내 결재 순서보다 앞사람들 사인을 조회하기   -->
+<select id="getApproverSignatures" resultType="EmployeeDto" parameterType="map">
+    SELECT 
+        s.SIGN AS signSaved,
+        sub.APPRV_LEVEL
+    FROM (
+       
+        SELECT a.APPRV_LEVEL, a.EMP_ID
+        FROM APPROVAL a
+        WHERE DOC_ID = #{docId}
+    ) sub
+    JOIN EMPLOYEE e 
+    ON sub.EMP_ID = e.EMP_ID
+    JOIN SIGN s 
+    ON s.EMP_ID = sub.EMP_ID
+    WHERE sub.APPRV_LEVEL &lt; (
+        
+        SELECT APPRV_LEVEL 
+        FROM APPROVAL 
+        WHERE EMP_ID = #{empId}
+        AND DOC_ID = #{docId}
+    )
+    ORDER BY sub.APPRV_LEVEL
+</select>
+
+<!--내가 결재를 보낸 문서들  -->
+<select id="selectApprvMine" parameterType="String" resultType="DocumentDto" >
+SELECT DOC_NUM, DOC_TYPE ,TITLE ,DOC_STATUS ,CREATE_DATE 
+	FROM DOCUMENT d 
+	WHERE DOC_STATUS IN('Y','N','R')
+	AND EMP_ID = #{emp_id}
+</select>
+
+
+
+<!--결재 대상자 리스트  -->
+<!--  <select id="geteApproval" resultType="ApprovalDto"> -->
+<!--         SELECT  -->
+<!--             e.NAME,  -->
+<!--             d.DEPT_NAME,  -->
+<!--             sub.APPRV_LEVEL -->
+<!--         FROM ( -->
+<!--             SELECT a.APPRV_LEVEL, a.EMP_ID -->
+<!--             FROM APPROVAL a -->
+<!--             WHERE TRIM(a.DOC_ID) = TRIM(#{doc_id}) -->
+<!--         ) sub -->
+<!--         JOIN EMPLOYEE e ON sub.EMP_ID = e.EMP_ID -->
+<!--         JOIN DEPT d ON e.DEPT_ID = d.DEPT_ID -->
+<!--  </select> -->
+
+
+<!--승인을 누르면 진행중에서 승인으로  -->
+<update id="updateApprovalStatus" parameterType="ApprovalDto">
+    UPDATE APPROVAL 
+    SET SIGN = (SELECT SIGN FROM SIGN s WHERE s.EMP_ID = #{emp_id}),
+        APPRV_STATUS = '승인',
+        APPRV_DATE = CURRENT_DATE
+    WHERE DOC_ID = #{doc_id} 
+      AND APPRV_ID = #{apprv_id}
+</update>
+
+<!--승인 순서가 마지막인지 확인  -->
+<select id="selectApprovalLast" resultType="String">
+  SELECT APPRV_LEVEL
+   	FROM APPROVAL a 
+   	WHERE APPRV_ID = #{apprv_id}
+</select>
+
+<!--결재순서의 마지막 번호 조회  -->
+<select id="selectApprovalMax" resultType="Integer">
+ SELECT MAX(APPRV_LEVEL)
+   	FROM APPROVAL a 
+   	WHERE DOC_ID = #{doc_id}
+ </select>
+
+    <update id="updateDocumentStatus" parameterType="int">
+    UPDATE DOCUMENT d
+    SET d.DOC_STATUS = 'Y'
+    WHERE d.DOC_ID = #{doc_id}
+     </update>
+
+
+<!-- 반려 -->
+<update id="updateApprovalReject" parameterType="ApprovalDto">
+
+	UPDATE APPROVAL 
+	SET	APPRV_STATUS  = '반려', 
+		APPRV_DATE = CURRENT_DATE 
+	WHERE DOC_ID =#{doc_id} AND APPRV_ID = #{apprv_id}
+
+</update>
+
+<insert id="insertRejection" parameterType="RejectionDto">
+	INSERT INTO REJECTION
+	(DOC_ID, REJECT_NAME, REJECT_TEXT, REJECT_DATE)
+	VALUES(#{doc_id}, #{reject_name}, #{reject_text}, CURRENT_DATE)
+</insert>
+
+
+<update id="updateDocStatusReject" parameterType="ApprovalDto">
+	UPDATE DOCUMENT
+		SET DOC_STATUS='R'
+		WHERE DOC_ID= #{doc_id}
+</update>	
+
+<!-- 내가 해야할 결재 갯수 -->
+<select id="getMyApprovalCount" resultType="int">
+    SELECT 
+        COUNT(*) AS MYCNT
+    FROM (
+        SELECT 
+            APPRV_ID, DOC_ID, EMP_ID, APPRV_STATUS, SIGN,  APPRV_LEVEL,
+            LAG(APPRV_STATUS, 1) OVER (PARTITION BY DOC_ID ORDER BY APPRV_LEVEL) AS PREV_SIGN,
+            ROW_NUMBER() OVER (PARTITION BY DOC_ID ORDER BY APPRV_LEVEL ASC) AS rn
+        FROM APPROVAL
+    ) A
+    JOIN DOCUMENT D ON A.DOC_ID = D.DOC_ID
+    JOIN EMPLOYEE E ON D.EMP_ID = E.EMP_ID
+    WHERE (A.PREV_SIGN = '승인' OR A.PREV_SIGN IS NULL)
+        AND A.APPRV_STATUS != '승인'
+        AND A.APPRV_STATUS != '반려'
+        AND A.EMP_ID = #{emp_id}
+     ORDER BY D.DOC_ID DESC
+</select>
+
+<select id="getContinueCount" resultType="int">
+SELECT COUNT(*) AS CONTINUECNT
+	FROM DOCUMENT d 
+	WHERE DOC_STATUS = 'N'
+	AND EMP_ID = #{emp_id}
+</select>
+
+<select id="getTempCount" resultType="int">
+SELECT COUNT(*) TEMPCNT
+	FROM DOCUMENT 
+    WHERE EMP_ID = #{emp_id}
+    AND DOC_STATUS = 'T'
+</select>
+
+
+</mapper>

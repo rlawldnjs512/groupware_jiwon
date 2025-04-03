@@ -1,0 +1,117 @@
+@charset "UTF-8";
+
+   /* 기본 스타일 */
+        body {
+            overflow-x: hidden;
+        }
+
+        /* 사이드바 스타일 */
+        .sidebar {
+        width: 250px;
+        height: 100vh;
+        background-color: #1E2A40;
+        position: fixed;
+        top: 0;
+        left: 0;
+        padding-top: 20px;
+        color: white;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    /* 메뉴 스타일 */
+    .sidebar ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .sidebar ul li {
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.3s;
+        color: #d3d3d3;
+    }
+
+    .sidebar ul li:hover {
+        background: #3A4B66;
+        color: white;
+    }
+
+    .sidebar ul li i {
+        margin-right: 10px;
+        font-size: 18px;
+    }
+	.sidebar ul li a{
+		text-decoration: none;
+		color: white;
+	}
+    /* 3점 버튼 스타일 */
+    .menu-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: white;
+        cursor: pointer;
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+
+        /* 사이드바 숨김 상태 */
+        .sidebar.hidden {
+            transform: translateX(-80%);
+        }
+
+        /* 컨텐츠 영역 */
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            background-color: #F5F5F5;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 사이드바 숨김 상태일 때 컨텐츠 확장 */
+        .content.expanded {
+            margin-left: 50px;
+        }
+
+        /* 헤더 (15%) */
+        .header {
+            background-color: white;
+            padding: 10px 20px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 0 0 15%;
+        }
+
+        /* 유저 아이콘 */
+        .user-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        /* 3점 버튼 스타일 */
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        /* 메인 콘텐츠 (85%) */
+        .main-content {
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            flex: 1;
+        }

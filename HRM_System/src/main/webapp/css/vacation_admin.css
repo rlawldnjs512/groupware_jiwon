@@ -1,0 +1,55 @@
+@charset "UTF-8";
+
+.table {
+	text-align: center;
+}
+
+/* 페이징 컨테이너 가운데 정렬 */
+.pagination-container {
+	display: flex;
+	justify-content: center;
+	margin-top: 20px;
+}
+
+/* 원형 버튼 스타일 */
+.pagination li a {
+	display: inline-block;
+	width: 40px;
+	height: 40px;
+	line-height: 40px;
+	text-align: center;
+	border-radius: 50%;
+	background-color: #f8f9fa;
+	color: #333;
+	border: 1px solid #dee2e6;
+	margin: 0 5px;
+	transition: background-color 0.3s, color 0.3s, transform 0.2s;
+	font-weight: bold;
+	text-decoration: none; /* 밑줄 제거 */
+}
+
+/* hover 및 focus 상태 */
+.pagination li a:hover, .pagination li a:focus {
+	background-color: #007bff;
+	color: #fff;
+	text-decoration: none;
+	transform: translateY(-2px); /* 마우스 오버 시 살짝 올라가는 효과 */
+	box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2); /* 부드러운 그림자 */
+}
+
+/* 활성화된 버튼 스타일 */
+.pagination li.active a {
+	background-color: #007bff;
+	color: #fff;
+	border-color: #007bff;
+	transform: translateY(-2px); /* 활성화된 버튼도 올라가게 함 */
+	box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2); /* 부드러운 그림자 */
+}
+
+/* 비활성 버튼 스타일 */
+.pagination li a:disabled {
+	background-color: #e9ecef;
+	color: #6c757d;
+	border: 1px solid #dee2e6;
+	cursor: not-allowed;
+}

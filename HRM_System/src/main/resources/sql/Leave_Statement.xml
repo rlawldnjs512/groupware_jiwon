@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.ILeaveDao">
+	
+	<!-- 사원들의 휴가 내역 총 개수 -->
+	<select id="countLeavePage" resultType="Integer">
+		SELECT COUNT(*)
+			FROM DOCUMENT d
+			JOIN EMPLOYEE e ON d.EMP_ID = e.EMP_ID
+			WHERE d.DOC_TYPE = '휴가'
+			AND d.DOC_STATUS = 'Y'
+			<if test="keyword != null and keyword != '' and type == 'emp_id'">
+		        AND e.EMP_ID LIKE '%' || #{keyword} || '%'
+		    </if>
+		    <if test="keyword != null and keyword != '' and type == 'name'">
+		        AND e.NAME LIKE '%' || #{keyword} || '%'
+		    </if>
+	</select>
+	
+	<!-- 전체 사원들의 사용한 휴가 내역 (페이징 처리) -->
+	<select id="selectLeavePage" resultType="Map">
+		SELECT SEQ, t.EMP_ID, e.NAME, t.TYPE, t.LEAVE_START, t.LEAVE_END
+			FROM ( SELECT ROW_NUMBER() OVER (ORDER BY l.LEAVE_START DESC) AS SEQ
+						  , l.LEAVE_START
+						  , l.LEAVE_END
+						  , l.TYPE
+						  , l.LEAVE_DAYS
+						  , d.EMP_ID 
+				   	FROM LEAVE l
+					JOIN DOCUMENT d ON l.DOC_ID = d.DOC_ID 
+					WHERE d.DOC_TYPE = '휴가' 
+					AND d.DOC_STATUS = 'Y' ) t
+			JOIN EMPLOYEE e ON t.emp_id = e.EMP_ID
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			<if test="keyword != null and keyword != '' and type == 'emp_id'">
+		        AND e.EMP_ID LIKE '%' || #{keyword} || '%'
+		    </if>
+		    <if test="keyword != null and keyword != '' and type == 'name'">
+		        AND e.NAME LIKE '%' || #{keyword} || '%'
+		    </if>
+			ORDER BY t.LEAVE_START DESC
+	</select>
+
+	<!-- 사원 1명의 사용휴가 내역 조회 -->
+	<select id="leaveListByEmpId" resultType="Map">
+		SELECT TO_CHAR(LEAVE_START, 'YYYY-MM-DD')  AS LEAVE_START, 
+			   TO_CHAR(LEAVE_END, 'YYYY-MM-DD')    AS LEAVE_END, 
+			   TYPE, 
+			   LEAVE_DAYS
+			FROM LEAVE l
+			JOIN DOCUMENT d 
+			ON l.DOC_ID = d.DOC_ID 
+			WHERE TRIM(EMP_ID) = TRIM(#{empId})
+			AND DOC_TYPE = '휴가'
+			<if test="startDate != null and endDate != null">
+				AND LEAVE_START &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+				AND LEAVE_START &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+			</if>
+			ORDER BY LEAVE_START DESC
+	</select>
+	
+	<!-- 휴가 결재하기 - 상신하기 - LEAVE INSERT -->
+	<insert id="vacation_approval">
+	INSERT INTO LEAVE
+		(DOC_ID, LEAVE_START, LEAVE_END, "TYPE", LEAVE_DAYS)
+	VALUES(#{doc_id}, #{leave_start}, #{leave_end}, #{TYPE}, TO_NUMBER(#{leave_end} - #{leave_start}))
+	</insert>
+	
+	<!-- 휴가승인을 받고 나의 남은 휴가에서 차감, 사용한 휴가에서 추가 -->
+	<update id="updateVacationLeave">
+		UPDATE VACATION v
+			SET LEAVE_REMAIN = LEAVE_REMAIN - (
+			    SELECT LEAVE_DAYS
+			    FROM LEAVE hl JOIN DOCUMENT hd 
+			    ON hl.DOC_ID = hd.DOC_ID
+			    WHERE hl.DOC_ID = #{doc_id}
+			),
+			LEAVE_USE = LEAVE_USE + (
+				SELECT LEAVE_DAYS
+				FROM LEAVE hl JOIN DOCUMENT hd 
+			    ON hl.DOC_ID = hd.DOC_ID
+			    WHERE hl.DOC_ID = #{doc_id}
+			)
+		WHERE v.EMP_ID = (
+			SELECT hd.EMP_ID
+			FROM DOCUMENT hd
+			WHERE hd.DOC_ID = #{doc_id}
+		)
+	</update>
+
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IReservationDao">
+
+<resultMap type="RoomDto" id="RoomMap">
+	<result property="room_id" column="ROOM_ID"/>
+	<result property="room_name" column="ROOM_NAME"/>
+	<result property="person" column="PERSON"/>
+	<collection property="reservation" resultMap="ReservationMap"/>
+</resultMap>
+
+<resultMap type="ReservationDto" id="ReservationMap">
+	<result property="reserv_id" column="RESERV_ID"/>
+	<result property="range" column="RANGE"/>
+	<result property="slot" column="SLOT"/>
+	<result property="emp_id" column="EMP_ID"/>
+	<result property="rev_date" column="REV_DATE" />
+	<result property="name" column="NAME"/>
+</resultMap>
+
+<resultMap type="RoomDto" id="MyRoomMap">
+	<result property="room_id" column="ROOM_ID"/>
+	<result property="room_name" column="ROOM_NAME"/>
+	<result property="myreservation.name" column="NAME"/>
+	<result property="myreservation.emp_id" column="EMP_ID"/>
+	<result property="myreservation.rev_date" column="REV_DATE" />
+	<result property="myreservation.reserv_id" column="RESERV_ID"/>
+</resultMap>
+
+<select id="selectReservation" resultMap="RoomMap">
+SELECT r.ROOM_ID , r.ROOM_NAME ,CASE 
+									WHEN r2.SLOT IS NOT NULL THEN r2.EMP_ID
+									ELSE '예약가능'
+									END AS EMP_ID,
+	NVL(RESERV_ID,0) AS RESERV_ID,
+	TO_CHAR(CASE t.SLOT
+		WHEN '0' THEN '08:00~08:50' 
+		WHEN '1' THEN '09:00~09:50' 
+		WHEN '2' THEN '10:00~10:50'
+		WHEN '3' THEN '11:00~11:50'
+		WHEN '4' THEN '12:00~12:50'
+		WHEN '5' THEN '13:00~13:50'
+		WHEN '6' THEN '14:00~14:50'
+		WHEN '7' THEN '15:00~15:50'
+		WHEN '8' THEN '16:00~16:50'
+		WHEN '9' THEN '17:00~17:50'
+		END) AS RANGE, 
+		NVL(TO_CHAR(REV_DATE,'YYYY-MM-DD'),0) AS REV_DATE, t.SLOT
+	FROM ROOM r 
+CROSS JOIN
+(SELECT TO_CHAR(LEVEL -1) SLOT 
+	FROM DUAL
+	CONNECT BY LEVEL &lt;=10) t
+LEFT JOIN 
+(SELECT RESERV_ID, ROOM_ID, EMP_ID, REV_DATE, SLOT
+	FROM RESERVATION rs
+	WHERE TO_CHAR(rs.REV_DATE,'YYYY-MM-DD') = #{currDay}) r2
+ON t.SLOT = r2.SLOT
+AND r.ROOM_ID = r2.ROOM_ID
+ORDER BY r.ROOM_ID, t.SLOT
+</select>
+
+
+<select id="myReservation" resultMap="MyRoomMap">
+SELECT RESERV_ID                         as RESERV_ID
+     , ROOM_ID                           as ROOM_ID
+     , ROOM_NAME                         as ROOM_NAME
+     , EMP_ID                            as EMP_ID   
+     , NAME                              as NAME
+     , TO_CHAR(REV_DATE,'YYYY-MM-DD')	 as REV_DATE
+     , SLOT 
+     , TO_CHAR(
+        CASE SLOT
+		WHEN '0' THEN '08:00~08:50' 
+		WHEN '1' THEN '09:00~09:50' 
+		WHEN '2' THEN '10:00~10:50'
+		WHEN '3' THEN '11:00~11:50'
+		WHEN '4' THEN '12:00~12:50'
+		WHEN '5' THEN '13:00~13:50'
+		WHEN '6' THEN '14:00~14:50'
+		WHEN '7' THEN '15:00~15:50'
+		WHEN '8' THEN '16:00~16:50'
+		WHEN '9' THEN '17:00~17:50'
+		END)                             AS RANGE
+  FROM RESERVATION r JOIN ROOM r2 
+ USING (ROOM_ID)
+  JOIN EMPLOYEE e 
+ USING (EMP_ID)
+ WHERE EMP_ID = #{emp_id}
+ORDER BY REV_DATE DESC
+
+
+</select>
+
+
+
+<insert id="insertReservation" >
+
+INSERT INTO RESERVATION
+(RESERV_ID, ROOM_ID, EMP_ID, REV_DATE, SLOT)
+VALUES(RESERVATION_SEQ.NEXTVAL, #{room_id} , #{emp_id} , #{rev_date}, #{slot})
+
+</insert>
+
+<delete id="deleteReservation">
+DELETE FROM RESERVATION
+WHERE RESERV_ID=#{reserv_id} AND EMP_ID=#{emp_id}
+
+</delete>
+
+
+<select id="selectRoom" resultType="RoomDto">
+SELECT ROOM_ID , ROOM_NAME 
+	FROM ROOM r 
+</select>
+
+
+<insert id="insertRoom">
+<selectKey keyProperty="room_id" resultType="java.lang.Integer" order="BEFORE">
+SELECT ROOM_SEQ.NEXTVAL FROM DUAL
+</selectKey>
+INSERT INTO ROOM
+(ROOM_ID, ROOM_NAME)
+VALUES(#{room_id}, #{room_name})
+</insert>
+
+<delete id="deleteRoom">
+DELETE FROM ROOM
+WHERE ROOM_ID = #{room_id}
+</delete>
+
+<!-- 캘린더에 값을 뿌려주기 위한 데이터 조회 회의실/출장/휴가 -->
+<select id="getReservation" resultType="Map">
+	SELECT TO_CHAR(REV_DATE,'YYYY-MM-DD')	AS "start"
+	 	 , TO_CHAR(REV_DATE,'YYYY-MM-DD') 	AS "end"
+	     , TO_CHAR(
+	        CASE SLOT
+			WHEN '0' THEN '08:00~08:50' 
+			WHEN '1' THEN '09:00~09:50' 
+			WHEN '2' THEN '10:00~10:50'
+			WHEN '3' THEN '11:00~11:50'
+			WHEN '4' THEN '12:00~12:50'
+			WHEN '5' THEN '13:00~13:50'
+			WHEN '6' THEN '14:00~14:50'
+			WHEN '7' THEN '15:00~15:50'
+			WHEN '8' THEN '16:00~16:50'
+			WHEN '9' THEN '17:00~17:50'
+			END) || ' ' || ROOM_NAME		AS "title"
+		 , '#0064DC' 						AS "color"
+	FROM RESERVATION r JOIN ROOM r2 
+	USING (ROOM_ID)
+	JOIN EMPLOYEE e 
+	USING (EMP_ID)
+	WHERE TRIM(EMP_ID) = TRIM(#{empId}) 
+		UNION ALL
+		SELECT TO_CHAR(LEAVE_START, 'YYYY-MM-DD'), TO_CHAR(LEAVE_END + 1, 'YYYY-MM-DD'), TYPE, '#646464'
+		FROM LEAVE l 
+		JOIN DOCUMENT d 
+		ON l.DOC_ID = d.DOC_ID 
+		WHERE TRIM(EMP_ID) = TRIM(#{empId}) 
+		AND DOC_STATUS = 'Y'
+			UNION ALL
+			SELECT TO_CHAR(TRIP_START, 'YYYY-MM-DD'), TO_CHAR(TRIP_END + 1, 'YYYY-MM-DD'), DOC_TYPE || ' (' || DESTINATION || ')', '#D97706'
+			FROM TRIP t 
+			JOIN DOCUMENT d 
+			ON t.DOC_ID = d.DOC_ID 
+			WHERE TRIM(EMP_ID) = TRIM(#{empId}) 
+			AND DOC_STATUS = 'Y'	
+</select>
+
+
+</mapper>

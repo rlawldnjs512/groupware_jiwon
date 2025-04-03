@@ -1,0 +1,120 @@
+
+
+body {
+   
+    background-color: #F5F5F5;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* 콘텐츠 중앙 정렬을 위한 스타일 */
+.container {
+    width: 100%;
+    max-width: 450px; /* 카드의 최대 너비 설정 */
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 헤더 스타일 */
+.header {
+	text-align: center;
+	font-size: 1.8rem;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 20px;
+	font-weight: 400;
+	
+}
+
+/* 카드 스타일 */
+.card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+}
+
+/* 입력 필드 스타일 */
+.input-field {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    outline: none;
+    background-color: #f9f9f9;
+    margin-bottom: 15px;
+}
+
+.input-field:focus {
+    border-color: #02F1C9; /* 포커스 시 청록색 */
+    box-shadow: 0 0 8px rgba(2, 241, 201, 0.2);
+}
+
+/* 버튼 스타일 */
+.btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #02F1C9;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.btn:hover {
+    background-color: #028F87; /* 어두운 청록색 */
+}
+
+.btn:active {
+    background-color: #017B6D; /* 더 어두운 청록색 */
+}
+
+/* 테이블 스타일 */
+table {
+    width: 100%;
+    border-spacing: 0;
+    margin-bottom: 20px;
+}
+
+table td {
+    padding: 8px;
+    text-align: left;
+}
+
+/* 미디어 쿼리 - 작은 화면 대응 */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    .header {
+        font-size: 1.5rem;
+    }
+
+    .card {
+        padding: 15px;
+    }
+
+    .input-field {
+        padding: 10px;
+    }
+
+    .btn {
+        font-size: 1rem;
+    }
+}
+
+

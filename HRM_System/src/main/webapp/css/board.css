@@ -1,0 +1,210 @@
+@charset "UTF-8";
+
+:root {
+	--bs-primary: #1b84ff;
+	--bs-primary-light: #e9f3ff;
+	--bs-primary-white: #fff;
+}
+
+.btn.btn-light-success {
+   color: var(--bs-success);
+   border-color: var(--bs-success-light);
+   background-color: var(--bs-success-light);
+}
+
+.btn.btn-light-success:hover {
+   color: var(--bs-white);
+   border-color: var(--bs-success);
+   background-color: var(--bs-success);
+}
+
+.btn.btn-light-success:focus {
+   outline: none;
+   box-shadow: 0 0 0 0.25rem rgba(var(--bs-success), 0.5);
+}
+
+.btn.btn-light-secondary {
+   color: var(--bs-secondary);
+   border-color: var(--bs-secondary-light);
+   background-color: var(--bs-secondary-light);
+}
+
+.btn.btn-light-secondary:hover {
+   color: var(--bs-white);
+   border-color: var(--bs-secondary);
+   background-color: var(--bs-secondary);
+}
+
+.btn.btn-light-secondary:focus {
+   outline: none;
+   box-shadow: 0 0 0 0.25rem rgba(var(--bs-secondary), 0.5);
+}
+
+.btn.btn-light-primary {
+   color: var(--bs-primary);
+   border-color: var(--bs-primary-light);
+   background-color: var(--bs-primary-light);
+}
+
+.btn.btn-light-primary:hover {
+   color: var(--bs-primary-white);
+   border-color: var(--bs-primary);
+   background-color: var(--bs-primary);
+}
+
+.btn.btn-light-primary:focus {
+   outline: none;
+   box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary), 0.5);
+}
+
+.btn.btn-light-warning {
+   color: var(--bs-warning);
+   border-color: var(--bs-warning-light);
+   background-color: var(--bs-warning-light);
+}
+
+.btn.btn-light-warning:hover {
+   color: var(--bs-white);
+   border-color: var(--bs-warning);
+   background-color: var(--bs-warning);
+}
+
+.btn.btn-light-warning:focus {
+   outline: none;
+   box-shadow: 0 0 0 0.25rem rgba(var(--bs-warning), 0.5);
+}
+
+th, td {
+	border: 1px solid #ccc;
+	padding: 10px;
+	text-align: center;
+}
+
+th {
+	background-color: #f0f0f0;
+}
+
+.gray {
+	background-color: #ddd;
+}
+
+.hidden-row {
+    display: none;
+}
+.btn-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.searchArea {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;     /* 세로 중앙 정렬 */
+    gap: 10px;               /* 요소 간 간격 */
+}
+
+/* 검색폼 영역 스타일 */
+.main-content fieldset {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    margin-bottom: 20px;
+    min-width: 1024px; /* 최소 너비를 1024px로 설정 */
+}
+
+/* 테이블 스타일 */
+.main-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    min-width: 900px;
+}
+
+/* 테이블 header 부분 강화 */
+.main-content table thead {
+    background: linear-gradient(to right, #87CEEB, #add8e6);
+    color: #fff;
+    font-weight: bold;
+    border-bottom: 2px solid #ccc;
+}
+
+.main-content table thead tr th,
+.main-content table thead tr td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 16px;
+}
+
+.main-content table tbody tr td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.main-content table tbody tr:hover {
+    background-color: #f1faff;
+}
+
+.panel-title {
+    text-decoration: none; /* 밑줄 제거 */
+}
+
+
+
+
+
+/* 페이징 컨테이너 가운데 정렬 */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* 원형 버튼 스타일 */
+.pagination li a {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #dee2e6;
+    margin: 0 5px;
+    transition: background-color 0.3s, color 0.3s, transform 0.2s;
+    font-weight: bold;
+    text-decoration: none; /* 밑줄 제거 */
+}
+
+/* hover 및 focus 상태 */
+.pagination li a:hover,
+.pagination li a:focus {
+    background-color: #007bff;
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-2px); /* 마우스 오버 시 살짝 올라가는 효과 */
+    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2); /* 부드러운 그림자 */
+}
+
+/* 활성화된 버튼 스타일 */
+.pagination li.active a {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+    transform: translateY(-2px); /* 활성화된 버튼도 올라가게 함 */
+    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2); /* 부드러운 그림자 */
+}
+
+/* 비활성 버튼 스타일 */
+.pagination li a:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+    cursor: not-allowed;
+}

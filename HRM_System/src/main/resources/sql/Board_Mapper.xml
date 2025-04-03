@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.IBoardDao">
+
+	<!-- 관리자는 공지사항 게시글을 등록할 수 있다. insertNotice -->
+	<insert id="insertNotice">
+		<selectKey keyProperty="not_id" resultType="Integer" order="BEFORE">
+			SELECT NOTICEBOARD_SEQ.NEXTVAL
+			FROM DUAL
+		</selectKey>
+		<!-- 공지사항 등록 -->
+		INSERT INTO NOTICEBOARD
+		(NOT_ID,
+		EMP_ID,
+		TITLE,
+		CONTENT,
+		REGDATE,
+		DELFLAG,
+		EXPIRED,
+		FILE_EXIST)
+		VALUES (#{not_id},
+		(SELECT EMP_ID FROM EMPLOYEE WHERE ROLE = 'A'),
+		#{title},
+		#{content},
+		SYSDATE,
+		'N',
+		#{expired},
+		'N')
+	</insert>
+	
+	<select id="getNotId" resultType="Integer">
+		SELECT NOT_ID FROM NOTICEBOARD n 
+	    ORDER BY REGDATE DESC 
+	    FETCH FIRST 1 ROWS ONLY
+	</select>
+	
+	<insert id="insertFile">
+		INSERT INTO FILEUP
+			(FILE_ID,
+			DOC_ID,
+			TABLE_NAME,
+			ORIGIN_NAME,
+			STORE_NAME,
+			"SIZE",
+			REGDATE,
+			DELFLAG,
+			FILE_PATH)
+		VALUES (FILEUP_SEQ.NEXTVAL,
+			#{not_id} ,
+			'NOTICEBOARD',
+			#{origin_name},
+			#{store_name},
+			#{size},
+			SYSDATE,
+			'N',
+			#{file_path})
+	</insert>
+	
+	<update id="updateFileExist">
+		UPDATE NOTICEBOARD
+		SET FILE_EXIST = 'Y'
+		WHERE NOT_ID = #{not_id}
+	</update>
+
+
+	<!-- 공지사항 게시글은 관리자만 수정할 수 있다. updateNotice -->
+	<update id="updateNotice">
+		UPDATE NOTICEBOARD SET CONTENT = #{content}
+		WHERE NOT_ID = #{not_id}
+		AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE ROLE = 'A')
+	</update>
+
+	<!-- 관리자는 공지사항 게시글을 삭제할 수 있다. deleteNotice -->
+	<delete id="deletefile">
+		DELETE FROM FILEUP
+		WHERE DOC_ID = #{not_id}
+		AND TABLE_NAME = 'NOTICEBOARD'
+	</delete>	
+	<delete id="deleteNotice">
+		DELETE FROM NOTICEBOARD
+		WHERE NOT_ID = #{not_id}
+	</delete>
+
+	<!-- 기한이 지난 게시글은 자동으로 삭제된다. deleteNoticeDead -->
+	<delete id="deleteNoticeDead">
+		DELETE FROM NOTICEBOARD n
+		WHERE EXPIRED <![CDATA[<]]>
+		CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
+	</delete>
+
+	<!-- (홈화면)공지사항 게시글을 조회할 수 있다. selectNotice -->
+	<select id="selectNotice" resultType="NoticeboardDto">
+		SELECT NOT_ID , TITLE , 
+			   (SELECT NAME FROM EMPLOYEE e WHERE ROLE = 'A') AS NAME , 
+			   TO_CHAR(REGDATE, 'YYYY-MM-DD') AS REGDATE
+		FROM NOTICEBOARD n
+		ORDER BY REGDATE DESC
+		FETCH FIRST 5 ROWS ONLY
+	</select>
+
+	<!-- 특정 공지사항을 not_id로 조회 -->
+	<select id="getNoticeById" resultType="NoticeboardDto">
+		SELECT NOT_ID, TITLE, CONTENT, REGDATE, TO_CHAR(EXPIRED,'YYYY-MM-DD') AS EXPIRED,
+		(SELECT NAME FROM EMPLOYEE e WHERE e.EMP_ID = n.EMP_ID) AS NAME
+		FROM NOTICEBOARD n
+		WHERE NOT_ID = #{not_id}
+	</select>
+
+	<!-- 사용자와 관리자는 자유게시글을 등록할 수 있다. insertFree -->
+	<insert id="insertFree">
+		<selectKey keyProperty="free_id" resultType="Integer" order="BEFORE">
+			SELECT FREEBOARD_SEQ.NEXTVAL
+			FROM DUAL
+		</selectKey>
+		INSERT INTO FREEBOARD
+		(FREE_ID, 
+		 EMP_ID, 
+		 TITLE,
+		 CONTENT, 
+		 REGDATE, 
+		 REPLY_ID,
+		 "REF", 
+		 STEP, 
+		 "DEPTH",
+		 DELFLAG, 
+		 FILE_ID)
+		VALUES(#{free_id},
+			   (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name}), 
+			   #{title},
+			   #{content},
+		       SYSDATE, 
+		       '',
+		       (SELECT NVL(MAX("REF"),0)+1 FROM FREEBOARD f), 
+		       0, 
+		       0,
+			   'N',
+		       '')
+	</insert>
+	
+	<select id="getFreeId" resultType="Integer">
+		SELECT FREE_ID FROM FREEBOARD
+		ORDER BY REGDATE DESC
+		FETCH FIRST 1 ROWS ONLY
+	</select>
+	
+	<insert id="insertFileFree">
+		INSERT INTO FILEUP
+			(FILE_ID,
+			DOC_ID,
+			TABLE_NAME,
+			ORIGIN_NAME,
+			STORE_NAME,
+			"SIZE",
+			REGDATE,
+			DELFLAG,
+			FILE_PATH)
+		VALUES (FILEUP_SEQ.NEXTVAL,
+			#{free_id},
+			'FREEBOARD',
+			#{origin_name},
+			#{store_name},
+			#{size},
+			SYSDATE,
+			'N',
+			#{file_path})
+	</insert>
+	
+	<update id="updateFreeFileExist">
+		UPDATE FREEBOARD
+		SET FILE_EXIST = 'Y'
+		WHERE FREE_ID = #{free_id}
+	</update>
+
+	<!-- 사용자와 관리자는 자신이 등록한 자유게시글만 수정할 수 있다. updateFree -->
+	<update id="updateFree">
+		UPDATE FREEBOARD SET CONTENT = #{content}
+		WHERE FREE_ID = #{free_id}
+		AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	</update>
+
+	<!-- 사용자와 관리자는 자신이 등록한 자유게시글만 삭제할 수 있다. deleteFree -->
+	<delete id="deleteFreeFile">
+		DELETE FROM FILEUP
+		WHERE DOC_ID = #{free_id} 
+		AND TABLE_NAME = 'FREEBOARD'
+	</delete>
+	<delete id="deleteFree">
+		DELETE FROM FREEBOARD f
+		WHERE FREE_ID = #{free_id}
+		AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	</delete>
+
+	<!-- 사용자와 관리자는 등록된 자유게시글에 답글을 달 수 있다. insertFreeReply / updateReply -->
+	<insert id="insertFreeReply">
+		INSERT INTO FREEBOARD
+			(FREE_ID, 
+			EMP_ID, 
+			TITLE,
+			CONTENT, 
+			REGDATE, 
+			REPLY_ID,
+			"REF", 
+			STEP, 
+			"DEPTH",
+			DELFLAG, 
+			FILE_ID)
+		VALUES(FREEBOARD_SEQ.NEXTVAL,
+				(SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name}), 
+				#{title},
+				#{content}, 
+				SYSDATE,
+				'RP' || LPAD(FREEBOARD_SEQ.NEXTVAL,4,'0'),
+				(SELECT "REF" FROM FREEBOARD WHERE FREE_ID = #{free_id}),
+				(SELECT STEP FROM FREEBOARD WHERE FREE_ID = #{free_id})+1,
+				(SELECT "DEPTH" FROM FREEBOARD WHERE FREE_ID = #{free_id})+1,
+				'N', 
+				'')
+	</insert>
+	<update id="updateReply">
+		UPDATE FREEBOARD SET STEP = STEP + 1
+		WHERE "REF" = (SELECT "REF" FROM FREEBOARD WHERE FREE_ID = #{free_id})
+		AND STEP > (SELECT STEP FROM FREEBOARD WHERE FREE_ID = #{free_id})
+	</update>
+	
+
+	<!-- 사용자와 관리자는 자신이 등록한 답글을 수정할 수 있다. updateFreeReply -->
+	<update id="updateFreeReply">
+		UPDATE FREEBOARD SET CONTENT = #{content}
+		WHERE FREE_ID = #{free_id}
+		AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	</update>
+
+	<!-- 사용자와 관리자는 자신이 등록한 답글을 삭제할 수 있다. deleteFreeReply -->
+	<delete id="deleteFreeReply">
+		DELETE FROM FREEBOARD f
+		WHERE FREE_ID = #{free_id}
+		AND EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	</delete>
+
+	<!-- 자유게시판을 조회할 수 있다. selectFree-->
+	<select id="selectFree" resultType="FreeboardDto">
+		SELECT FREE_ID , TITLE , NAME, TO_CHAR(REGDATE, 'YYYY-MM-DD') AS REGDATE
+			FROM FREEBOARD f
+			JOIN EMPLOYEE e USING(EMP_ID)
+			WHERE DEPTH = 0
+			ORDER BY REGDATE DESC
+			FETCH FIRST 5 ROWS ONLY
+	</select>
+
+	<!-- 특정 공지사항을 free_id로 조회 -->
+	<select id="getFreeById" resultType="FreeboardDto">
+		SELECT FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+		REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+		FROM FREEBOARD f
+		JOIN EMPLOYEE e USING(EMP_ID)
+		WHERE FREE_ID = #{free_id}
+	</select>
+
+
+	<!-- 사용자는 공지사항 게시글에 등록된 첨부파일을 여러 번 다운로드할 수 있다. selectNoticeFile -->
+	<select id="selectNoticeFile" resultType="FileUpDto">
+		SELECT FILE_ID, DOC_ID,
+			   ORIGIN_NAME, STORE_NAME, "SIZE", FILE_PATH
+		FROM FILEUP f
+		WHERE TABLE_NAME = 'NOTICEBOARD'
+		AND DOC_ID = #{not_id}
+	</select>
+
+	<!-- 사용자와 관리자는 자유게시글에 등록된 첨부파일을 여러 번 다운로드할 수 있다. selectFreeFile -->
+	<select id="selectFreeFile" resultType="FileUpDto">
+		SELECT FILE_ID, DOC_ID, ORIGIN_NAME, STORE_NAME, "SIZE", FILE_PATH
+		FROM FILEUP f
+		WHERE TABLE_NAME = 'FREEBOARD'
+		AND DOC_ID = #{free_id}
+	</select>
+
+	<select id="countNoticePage" resultType="Integer">
+		SELECT COUNT(*)
+		FROM NOTICEBOARD n
+	</select>
+
+	<select id="selectNoticePage" resultType="NoticeboardDto">
+		SELECT SEQ, 
+		       NOT_ID , 
+		       TITLE , 
+		       CONTENT , 
+		       REGDATE , 
+		       EXPIRED , 
+		       NAME , 
+		       FILE_EXIST
+		FROM (SELECT ROW_NUMBER() OVER (ORDER BY REGDATE DESC) AS SEQ,
+		             NOT_ID , 
+		             TITLE , 
+		             CONTENT , 
+		             REGDATE , 
+		             EXPIRED , 
+		             FILE_EXIST ,
+		             (SELECT NAME FROM EMPLOYEE e WHERE ROLE = 'A') AS NAME
+		      FROM NOTICEBOARD n)
+		WHERE SEQ BETWEEN #{first} AND #{last}
+		ORDER BY REGDATE DESC
+	</select>
+
+	<select id="countFreePage" resultType="Integer">
+		SELECT COUNT(*)
+		FROM FREEBOARD f
+	</select>
+
+	<select id="selectFreePage" resultType="FreeboardDto">
+		WITH OrderedData AS (
+		    SELECT ROW_NUMBER() OVER (ORDER BY "REF" DESC, STEP) AS ROW_NUM,
+		           FREE_ID, 
+		           TITLE, 
+		           CONTENT, 
+		           REGDATE, 
+		           EMP_ID, 
+		           NAME, 
+		           REF, 
+		           STEP, 
+		           DEPTH, 
+		           DELFLAG, 
+		           FILE_EXIST
+		    FROM FREEBOARD f
+		    JOIN EMPLOYEE e USING(EMP_ID)
+		)
+		SELECT ROW_NUM, 
+		       FREE_ID, 
+		       TITLE, 
+		       CONTENT, 
+		       REGDATE, 
+		       EMP_ID, 
+		       NAME, 
+		       REF, 
+		       STEP, 
+		       DEPTH, 
+		       DELFLAG, 
+		       FILE_EXIST
+		FROM OrderedData
+		WHERE ROW_NUM BETWEEN #{first} AND #{last}
+		ORDER BY "REF" DESC, STEP
+	</select>
+
+<!-- 게시글 검색하기 (공지사항/커뮤니티) -->
+<!-- 공지사항 -->
+<select id="searchNotice" resultType="NoticeboardDto">
+	SELECT SEQ, NOT_ID , TITLE , CONTENT , REGDATE , EXPIRED , NAME , FILE_EXIST
+			FROM (SELECT ROW_NUMBER() OVER (ORDER BY NOT_ID) AS SEQ,
+			NOT_ID , TITLE , CONTENT , REGDATE , EXPIRED , FILE_EXIST ,
+			(SELECT NAME FROM EMPLOYEE e WHERE ROLE = 'A') AS NAME
+			FROM NOTICEBOARD n)
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			AND CONTENT LIKE '%' || #{keyword} || '%'
+			ORDER BY NOT_ID ASC
+</select>
+<select id="countSearchNotice" resultType="int">
+	SELECT COUNT(*)
+		FROM NOTICEBOARD n
+		WHERE CONTENT LIKE '%' || #{keyword} || '%'
+		ORDER BY NOT_ID ASC
+</select>
+
+<select id="searchNoticeTitle" resultType="NoticeboardDto">
+	SELECT SEQ, NOT_ID , TITLE , CONTENT , REGDATE , EXPIRED , NAME , FILE_EXIST
+			FROM (SELECT ROW_NUMBER() OVER (ORDER BY NOT_ID) AS SEQ,
+			NOT_ID , TITLE , CONTENT , REGDATE , EXPIRED , FILE_EXIST ,
+			(SELECT NAME FROM EMPLOYEE e WHERE ROLE = 'A') AS NAME
+			FROM NOTICEBOARD n)
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			AND TITLE LIKE '%' || #{keyword} || '%'
+			ORDER BY NOT_ID ASC
+</select>
+<select id="countSearchNoticeTitle" resultType="int">
+	SELECT COUNT(*)
+		FROM NOTICEBOARD n
+		WHERE TITLE LIKE '%' || #{keyword} || '%'
+		ORDER BY NOT_ID ASC
+</select>
+
+<!-- 커뮤니티 -->
+<select id="searchFree" resultType="FreeboardDto">
+	SELECT SEQ, FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM (SELECT ROW_NUMBER() OVER (ORDER BY FREE_ID) AS SEQ,
+			FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM FREEBOARD f
+			JOIN EMPLOYEE e USING(EMP_ID))
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			AND CONTENT LIKE '%' || #{keyword} || '%'
+			ORDER BY FREE_ID ASC
+</select>
+<select id="countSearchFree" resultType="int">
+	SELECT COUNT(*)
+		FROM FREEBOARD f
+		WHERE CONTENT LIKE '%' || #{keyword} || '%'
+		ORDER BY FREE_ID ASC
+</select>
+
+<select id="searchFreeTitle" resultType="FreeboardDto">
+	SELECT SEQ, FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM (SELECT ROW_NUMBER() OVER (ORDER BY FREE_ID) AS SEQ,
+			FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM FREEBOARD f
+			JOIN EMPLOYEE e USING(EMP_ID))
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			AND TITLE LIKE '%' || #{keyword} || '%'
+			ORDER BY FREE_ID ASC
+</select>
+<select id="countSearchFreeTitle" resultType="int">
+	SELECT COUNT(*)
+		FROM FREEBOARD f
+		WHERE TITLE LIKE '%' || #{keyword} || '%'
+		ORDER BY FREE_ID ASC
+</select>
+
+<select id="searchFreeName" resultType="FreeboardDto">
+	SELECT SEQ, FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM (SELECT ROW_NUMBER() OVER (ORDER BY FREE_ID) AS SEQ,
+			FREE_ID , TITLE , CONTENT , REGDATE , EMP_ID , NAME ,
+			REF , STEP , DEPTH , DELFLAG , FILE_EXIST
+			FROM FREEBOARD f
+			JOIN EMPLOYEE e USING(EMP_ID))
+			WHERE SEQ BETWEEN #{first} AND #{last}
+			AND NAME LIKE '%' || #{keyword} || '%'
+			ORDER BY FREE_ID ASC
+</select>
+<select id="countSearchFreeName" resultType="int">
+	SELECT COUNT(*)
+			FROM FREEBOARD f
+			JOIN EMPLOYEE e USING(EMP_ID)
+			WHERE NAME LIKE '%' || #{keyword} || '%'
+</select>
+
+
+
+</mapper>

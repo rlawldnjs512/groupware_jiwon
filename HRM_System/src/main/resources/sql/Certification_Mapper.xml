@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.min.edu.model.mapper.ICertificateDao">
+ 
+<resultMap type="EmployeeDto" id="EmployeeDtoMap">
+	<result property="name" column="NAME"/>
+	<result property="emp_id" column="EMP_ID"/>
+	
+	<collection property="CertificateDto" resultMap="CertificateDtoMap"/>
+</resultMap>
+
+<resultMap type="CertificateDto" id="CertificateDtoMap">
+	<result property="type" column="TYPE"/>
+	<result property="name" column="CERT_STATUS"/>
+	<result property="cert_status" column="CERT_DATE"/>
+	<result property="reason" column="REASON"/>
+	<result property="cert_num" column="CERT_NUM"/>
+</resultMap>
+
+ 
+<!-- 사용자는 본인의 증명서 신청이력을 증명서별로 조회할 수 있다.	selectCertTypeUser -->
+<select id="selectCertTypeUser" resultType="CertificateDto">
+	SELECT REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS , CERT_DATE , CERT_NUM , REASON
+        FROM CERTIFICATE c 
+        WHERE EMP_ID = #{emp_id}
+        AND "TYPE" = #{type}
+        ORDER BY REQ_ID ASC
+</select>
+
+<!-- 사용자는 신청할 증명서 종류, 신청 사유를 입력해서 증명서 신청을 할 수 있다.	insertCert -->
+<insert id="insertCert" useGeneratedKeys="true" keyProperty="cert_num">
+INSERT INTO CERTIFICATE
+	(REQ_ID, 
+	 EMP_ID, 
+	 "TYPE",
+	 REQ_DATE, 
+	 CERT_DATE,
+	 CERT_NUM, 
+	 REASON, 
+	 CERT_PATH)
+VALUES(
+     REQ_SEQ.NEXTVAL,
+     (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name}),
+     #{type},
+     SYSDATE,
+     SYSDATE,
+     (CASE 
+     	WHEN #{type} = '재직' THEN 'EMP'
+        WHEN #{type} = '경력' THEN 'CERT'
+        WHEN #{type} = '퇴직' THEN 'REJECT'
+        END || '_' || TO_CHAR(SYSDATE, 'YYYY') || '_' || REQ_SEQ.NEXTVAL),
+     #{reason},
+     '~/DATA/CERT/' || LOWER(#{type}) || '/' ||
+            (CASE 
+               WHEN #{type} = '재직' THEN 'EMP'
+               WHEN #{type} = '경력' THEN 'CERT'
+               WHEN #{type} = '퇴직' THEN 'REJECT'
+               END || '_' || TO_CHAR(SYSDATE, 'YYYY') || '_' || REQ_SEQ.CURRVAL || '.pdf'))
+</insert>
+
+<select id="getCertNum" resultType="String">
+    SELECT CERT_NUM FROM CERTIFICATE 
+    WHERE EMP_ID = (SELECT EMP_ID FROM EMPLOYEE WHERE NAME = #{name}) 
+    ORDER BY REQ_DATE DESC 
+    FETCH FIRST 1 ROWS ONLY
+</select>
+
+
+<!-- 관리자는 사용자가 신청한 증명서를 승인할 수 있다.	updateCertAccept -->
+<update id="updateCertAccept"> 
+	UPDATE CERTIFICATE SET CERT_STATUS = 'Y'
+        WHERE EMP_ID = #{emp_id}
+        AND CERT_STATUS = #{cert_status}
+        AND CERT_NUM = #{cert_num}
+</update>
+
+<!-- 사용자는 관리자의 승인을 받은 증명서에 대해서만 다운로드를 할 수 있다.	selectCertDown -->
+<select id="selectCertDown" resultType="CertificateDto">
+	SELECT REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS , CERT_DATE , CERT_NUM , REASON
+        FROM CERTIFICATE c
+        WHERE CERT_STATUS = 'Y'
+        AND IS_DOWNLOAD = 'N'
+        AND REQ_ID = SUBSTR(#{cert_num},-2)
+</select>
+
+<!-- 사용자는 단 한번만 증명서 다운로드를 할 수 있다.	 -->
+<update id="updateDownload">
+	UPDATE CERTIFICATE 
+        SET IS_DOWNLOAD = 'Y'
+        WHERE CERT_STATUS = 'Y'
+        AND IS_DOWNLOAD = 'N' 
+        AND CERT_NUM = #{cert_num}
+</update>
+
+<!-- 사용자는 본인의 증명서 신청이력을 삭제할 수 있다.	deleteCert -->
+<delete id="deleteCert">
+	DELETE FROM CERTIFICATE
+	WHERE EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	AND TRIM(REQ_ID) = (
+				SELECT SUBSTR(CERT_NUM , -2) 
+					FROM CERTIFICATE
+					WHERE CERT_NUM = #{cert_num}
+					)
+</delete>
+
+<!-- 사용자가 신청한 증명서에는 신청 날짜가 입력된다.	selectCertDate -->
+<select id="selectCertDate" resultType="String" >
+	SELECT TO_CHAR(REQ_DATE,'YYYY-MM-DD') REQ_DATE
+	FROM CERTIFICATE c 
+	WHERE EMP_ID IN (SELECT EMP_ID FROM EMPLOYEE e WHERE NAME = #{name})
+	AND TRIM(REQ_ID) = (
+				SELECT SUBSTR(CERT_NUM , -2) 
+					FROM CERTIFICATE
+					WHERE CERT_NUM = #{cert_num}
+					)
+</select>
+
+<!-- 관리자는 사원번호를 검색해서 증명서 신청이력을 조회할 수 있다.	selectCertEmpAdmin -->
+<select id="selectCertEmpAdmin" resultType="CertificateDto">
+    SELECT EMP_ID, TYPE, CERT_STATUS, CERT_DATE, REASON, CERT_NUM, REQ_DATE
+    FROM CERTIFICATE c
+    WHERE EMP_ID = #{emp_id}
+</select>
+
+<!-- 관리자는 증명서별로 증명서 신청이력을 조회할 수 있다.	selectCertTypeAdmin -->
+<select id="selectCertTypeAdmin" resultType="CertificateDto">
+	SELECT EMP_ID, "TYPE", CERT_STATUS, CERT_DATE, REASON, CERT_NUM ,REQ_DATE
+        FROM CERTIFICATE c  
+        WHERE "TYPE" = #{type}
+</select>
+
+<select id="countCert" resultType="Integer">
+    SELECT COUNT(*) 
+    FROM CERTIFICATE c
+    WHERE c.TYPE = #{type}
+    AND c.EMP_ID = #{emp_id}  <!-- emp_id를 추가하여 로그인한 사용자에 맞게 필터링 -->
+</select>
+
+<select id="countCertAdminId" resultType="Integer">
+    SELECT COUNT(*) 
+    FROM CERTIFICATE c
+    WHERE c.EMP_ID = #{emp_id} 
+</select>
+
+<select id="countCertAdminType" resultType="Integer">
+    SELECT COUNT(*) 
+    FROM CERTIFICATE c
+    WHERE c.TYPE = #{type}
+</select>
+
+<select id="selectCertTypeUserPage" resultType="CertificateDto">
+	SELECT SEQ, REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	FROM (
+	    SELECT ROW_NUMBER() OVER (ORDER BY REQ_ID) AS SEQ
+	           ,REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	    FROM CERTIFICATE c
+	    WHERE EMP_ID = #{emp_id}
+	    AND "TYPE" = #{type}
+		)
+	WHERE SEQ BETWEEN #{first} AND #{last}
+	ORDER BY REQ_ID ASC
+</select>
+
+<select id="selectCertIdAdminPage" resultType="CertificateDto">
+	SELECT SEQ, REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	FROM (
+	    SELECT ROW_NUMBER() OVER (ORDER BY REQ_ID) AS SEQ
+	           ,REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	    FROM CERTIFICATE c
+	    WHERE EMP_ID = #{emp_id}
+		)
+	WHERE SEQ BETWEEN #{first} AND #{last}
+	ORDER BY REQ_ID ASC
+</select>
+  
+<select id="selectCertTypeAdminPage" resultType="CertificateDto">
+	SELECT SEQ, REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	FROM (
+	    SELECT ROW_NUMBER() OVER (ORDER BY REQ_ID) AS SEQ
+	           ,REQ_ID, EMP_ID, "TYPE", REQ_DATE, CERT_STATUS, CERT_DATE, CERT_NUM, REASON, IS_DOWNLOAD
+	    FROM CERTIFICATE c
+	    WHERE "TYPE" = #{type}
+		)
+	WHERE SEQ BETWEEN #{first} AND #{last}
+	ORDER BY REQ_ID ASC
+</select>
+
+</mapper>
